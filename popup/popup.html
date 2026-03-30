@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navis Settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="logo-row">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="18" rx="1.5"/>
+          <line x1="14" y1="6" x2="21" y2="6"/>
+          <line x1="14" y1="10" x2="21" y2="10"/>
+          <line x1="14" y1="14" x2="19" y2="14"/>
+          <line x1="14" y1="18" x2="17" y2="18"/>
+        </svg>
+        <h1>Navis</h1>
+      </div>
+      <p class="tagline">Your AI conversation minimap</p>
+    </header>
+
+    <section class="settings-section">
+      <div class="setting-row">
+        <label for="position">Position</label>
+        <select id="position">
+          <option value="right">Right</option>
+          <option value="left">Left</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label for="autoHide">Auto-hide</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="autoHide" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <label for="minMessages">Min messages to show</label>
+        <select id="minMessages">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="shortcut-section">
+      <div class="shortcut-label">Toggle shortcut</div>
+      <div class="shortcut-keys">
+        <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd>
+      </div>
+    </section>
+
+    <footer class="popup-footer">
+      <div class="supported">
+        <span class="dot dot-green"></span>
+        ChatGPT &nbsp;
+        <span class="dot dot-green"></span>
+        Gemini &nbsp;
+        <span class="dot dot-green"></span>
+        Claude
+      </div>
+      <div class="privacy">Zero data collection</div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
