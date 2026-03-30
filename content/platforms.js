@@ -217,171 +217,52 @@ const NavisPlatforms = (() => {
       name: "Claude",
       getChatContainer() {
         return (
-          document.querySelector('[class*="ThreadLayout"]') ||
-          document.querySelector('[class*="thread-layout"]') ||
-          document.querySelector('[class*="conversation-content"]') ||
-          document.querySelector('[role="main"]') ||
+          document.querySelector('[data-autoscroll-container="true"]') ||
+          document.querySelector('[data-testid="virtuoso-item-list"]') ||
           document.querySelector("main")
         );
       },
       getScrollElement() {
-        // Claude's scrollable container
-        const mainEl =
-          document.querySelector('[role="main"]') ||
-          document.querySelector("main");
-        if (mainEl) {
-          // Find the scrollable child inside main
-          const scroller =
-            mainEl.querySelector('[class*="overflow-y"]') ||
-            mainEl.querySelector('[class*="overflow-auto"]') ||
-            mainEl.querySelector('[style*="overflow"]');
-          if (scroller) return scroller;
-        }
         return (
-          document.querySelector(".overflow-y-auto") ||
-          mainEl ||
-          document.documentElement
+          document.querySelector('[data-autoscroll-container="true"]') ||
+          document.querySelector('[data-testid="virtuoso-scroller"]') ||
+          document.querySelector('main [class*="overflow-y-auto"]') ||
+          document.querySelector(".overflow-y-auto")
         );
       },
       getMessages() {
         const messages = [];
+        // Claude organizes messages inside .group wrappers
+        const chatContainer = this.getChatContainer();
+        if (!chatContainer) return [];
 
-        // Strategy 1: Claude uses font-user-message / font-claude-message classes
-        const userMsgsByFont = document.querySelectorAll(
-          '[class*="font-user-message"]'
-        );
-        const aiMsgsByFont = document.querySelectorAll(
-          '[class*="font-claude-message"]'
-        );
-
-        if (userMsgsByFont.length > 0 || aiMsgsByFont.length > 0) {
-          const allMsgs = [];
-          userMsgsByFont.forEach((el) => {
-            const turnEl =
-              el.closest('[data-testid]') ||
-              el.closest('[class*="turn"]') ||
-              el.parentElement?.parentElement ||
-              el;
-            const text = el.textContent?.trim() || "";
-            if (text) {
-              allMsgs.push({
-                element: turnEl,
-                text,
-                isUser: true,
-                role: "user",
-                top: el.getBoundingClientRect().top,
-              });
-            }
-          });
-          aiMsgsByFont.forEach((el) => {
-            const turnEl =
-              el.closest('[data-testid]') ||
-              el.closest('[class*="turn"]') ||
-              el.parentElement?.parentElement ||
-              el;
-            // Clone to exclude thinking blocks
-            const clone = el.cloneNode(true);
-            clone.querySelectorAll(
-              '[class*="thinking"], [class*="Thinking"], details, summary'
-            ).forEach((t) => t.remove());
-            const text = clone.textContent?.trim() || "";
-            if (text) {
-              allMsgs.push({
-                element: turnEl,
-                text,
-                isUser: false,
-                role: "assistant",
-                top: el.getBoundingClientRect().top,
-              });
-            }
-          });
-          allMsgs.sort((a, b) => a.top - b.top);
-          allMsgs.forEach(({ element, text, isUser, role }) => {
-            messages.push({ element, text, isUser, role });
-          });
-        }
-
-        // Strategy 2: data-testid based selectors
-        if (messages.length === 0) {
-          const humanMsgs = document.querySelectorAll(
-            '[data-testid="human-turn"], [data-testid*="human"], [class*="human-turn"], [class*="user-turn"]'
-          );
-          const aiMsgs = document.querySelectorAll(
-            '[data-testid="ai-turn"], [data-testid*="assistant"], [class*="ai-turn"], [class*="assistant-turn"]'
-          );
-
-          if (humanMsgs.length > 0 || aiMsgs.length > 0) {
-            const allMsgs = [];
-            humanMsgs.forEach((el) => {
-              const text = el.textContent?.trim() || "";
-              if (text) {
-                allMsgs.push({
-                  element: el,
-                  text,
-                  isUser: true,
-                  role: "user",
-                  top: el.getBoundingClientRect().top,
-                });
-              }
+        const turns = chatContainer.querySelectorAll(".group");
+        
+        turns.forEach((el) => {
+          const userMsg = el.querySelector('[data-testid="user-message"], [class*="font-user-message"]');
+          const aiMsg = el.querySelector('[class*="font-claude-response"], [data-testid="assistant-message"]');
+          
+          if (userMsg) {
+            messages.push({
+              element: userMsg.closest('.group') || userMsg,
+              text: userMsg.innerText?.trim() || "User Message",
+              isUser: true,
+              role: "user"
             });
-            aiMsgs.forEach((el) => {
-              const clone = el.cloneNode(true);
-              clone.querySelectorAll(
-                '[class*="thinking"], [class*="Thinking"], details, summary'
-              ).forEach((t) => t.remove());
-              const text = clone.textContent?.trim() || "";
-              if (text) {
-                allMsgs.push({
-                  element: el,
-                  text,
-                  isUser: false,
-                  role: "assistant",
-                  top: el.getBoundingClientRect().top,
-                });
-              }
-            });
-            allMsgs.sort((a, b) => a.top - b.top);
-            allMsgs.forEach(({ element, text, isUser, role }) => {
-              messages.push({ element, text, isUser, role });
+          } else if (aiMsg) {
+            messages.push({
+              element: aiMsg.closest('.group') || aiMsg,
+              text: aiMsg.innerText?.trim() || "AI Response",
+              isUser: false,
+              role: "assistant"
             });
           }
-        }
+        });
 
-        // Strategy 3: Broad attribute/class scan for message grouping
-        if (messages.length === 0) {
-          const candidates = document.querySelectorAll(
-            '[class*="message"], [class*="Message"], [class*="turn"], [class*="Turn"], [data-role]'
-          );
-          const seen = new Set();
-          candidates.forEach((el) => {
-            const text = el.textContent?.trim() || "";
-            if (text && text.length > 3 && !seen.has(text.substring(0, 50))) {
-              seen.add(text.substring(0, 50));
-              const cls = (el.className || "").toLowerCase();
-              const role = el.getAttribute("data-role") || "";
-              const isUser =
-                cls.includes("user") ||
-                cls.includes("human") ||
-                role === "user" ||
-                role === "human";
-              const isAI =
-                cls.includes("assistant") ||
-                cls.includes("claude") ||
-                cls.includes("ai") ||
-                role === "assistant";
-              if (isUser || isAI) {
-                messages.push({
-                  element: el,
-                  text,
-                  isUser,
-                  role: isUser ? "user" : "assistant",
-                });
-              }
-            }
-          });
-        }
-
-        return messages;
+        // Dedup: sometimes nested .group elements cause double detection
+        return messages.filter((msg, idx, self) => 
+          idx === self.findIndex(m => m.element === msg.element)
+        );
       },
     },
   };
